@@ -15,6 +15,27 @@
     // Initiate the wowjs
     new WOW().init();
 
+    // Infinite Continuous Carousel Autoplay (Fixes last slide 'Dry & Finish' freezing)
+    var headerCarouselEl = document.getElementById('header-carousel');
+    if (headerCarouselEl && typeof bootstrap !== 'undefined') {
+        var headerCarousel = bootstrap.Carousel.getInstance(headerCarouselEl) || new bootstrap.Carousel(headerCarouselEl, {
+            interval: 3500,
+            wrap: true,
+            pause: false
+        });
+        headerCarousel.cycle();
+
+        headerCarouselEl.addEventListener('slid.bs.carousel', function (e) {
+            var totalItems = $('#header-carousel .carousel-item').length;
+            if (e.to === totalItems - 1) {
+                setTimeout(function () {
+                    headerCarousel.to(0);
+                    headerCarousel.cycle();
+                }, 3500);
+            }
+        });
+    }
+
 
     // Sticky Navbar & Auto-close open mobile navbar list on scroll
     $(window).on('scroll touchmove', function () {
