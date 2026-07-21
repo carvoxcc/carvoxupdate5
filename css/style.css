@@ -747,3 +747,38 @@ select option {
 .breadcrumb-item.active {
     color: #ffffff !important;
 }
+
+/* Form Controls & Textarea fix — prevent white-on-white overlap */
+input,
+textarea,
+select,
+.form-control,
+.form-select {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border: 1px solid #444 !important;
+    caret-color: var(--brass);
+}
+
+/* Placeholder must be visibly different from the typed text */
+input::placeholder,
+textarea::placeholder,
+.form-control::placeholder {
+    color: #888888 !important;
+    opacity: 1 !important;
+}
+
+/* Focus ring in brass */
+input:focus,
+textarea:focus,
+.form-control:focus {
+    border-color: var(--brass) !important;
+    box-shadow: 0 0 0 0.2rem rgba(196, 164, 92, 0.25) !important;
+    outline: none;
+}
+
+/* Fix: global p/span/li rule was bleeding into textarea text */
+textarea {
+    color: #ffffff !important;
+    resize: vertical;
+}
