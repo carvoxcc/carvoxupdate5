@@ -79,10 +79,10 @@
     // Back to top button & social media icons scroll toggle
     $(window).scroll(function () {
         if ($(this).scrollTop() > 300) {
-            $('.back-to-top').fadeIn('slow');
+            $('.back-to-top').addClass('show-btn');
             $('.rightSideFixedSocialIcons').addClass('show-on-scroll');
         } else {
-            $('.back-to-top').fadeOut('slow');
+            $('.back-to-top').removeClass('show-btn');
             $('.rightSideFixedSocialIcons').removeClass('show-on-scroll');
         }
     });
