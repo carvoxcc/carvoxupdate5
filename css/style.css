@@ -225,6 +225,13 @@ html, body {
     -webkit-tap-highlight-color: transparent;
 }
 
+/* CSS Input Suppression during active slide transitions */
+#header-carousel.is-animating,
+#heroSlider.is-animating {
+    pointer-events: none !important;
+    touch-action: none !important;
+}
+
 /* 60FPS Hardware Acceleration & Zero CLS Slider Framework */
 #header-carousel {
     touch-action: pan-y !important;

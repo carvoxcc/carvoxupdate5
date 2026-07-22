@@ -15,7 +15,7 @@
     // Initiate the wowjs
     new WOW().init();
 
-    // Smart Image Caching, Preloading, Anti-Freeze & RAM Management for Hero Carousel
+    // Smart Image Caching, Single-Operation Touch Lock & RAM Management for Hero Carousel
     var headerCarouselEl = document.getElementById('header-carousel');
     if (headerCarouselEl) {
         var carouselItems = headerCarouselEl.querySelectorAll('.carousel-item');
@@ -23,6 +23,10 @@
         var navBtns = headerCarouselEl.querySelectorAll('.carousel-control-prev, .carousel-control-next');
         var slideWatchdogTimer = null;
         var headerCarousel = null;
+        var isAnimating = false;
+        var touchStartX = 0;
+        var touchStartY = 0;
+        var minSwipeThreshold = 40; // minimum px swipe distance
 
         // Function to preload a single slide image by swapping data-src to src
         function preloadSlideImage(index) {
@@ -52,14 +56,26 @@
         // Preload upcoming slides on initial page load (for active slide index 0)
         preloadUpcomingSlides(0);
 
-        // Helper to enable/disable navigation buttons pointer interactions
+        // Helper to enable/disable navigation controls & animation state
         function setControlsDisabled(disabled) {
             for (var i = 0; i < navBtns.length; i++) {
                 navBtns[i].style.pointerEvents = disabled ? 'none' : 'auto';
             }
         }
 
-        // Self-Healing Recovery: Clear stuck transitional classes and reset carousel instance
+        function lockInputState() {
+            isAnimating = true;
+            headerCarouselEl.classList.add('is-animating');
+            setControlsDisabled(true);
+        }
+
+        function unlockInputState() {
+            isAnimating = false;
+            headerCarouselEl.classList.remove('is-animating');
+            setControlsDisabled(false);
+        }
+
+        // Self-Healing Recovery Watchdog: Clear stuck transitional classes and reset animation lock
         function recoverStuckCarousel(targetIndex) {
             // 1. Forcibly remove all transitional CSS classes
             for (var i = 0; i < carouselItems.length; i++) {
@@ -82,10 +98,10 @@
                 }
             }
 
-            // Re-enable navigation controls
-            setControlsDisabled(false);
+            // 3. Clear animation lock and CSS input suppression
+            unlockInputState();
 
-            // 3. Re-initialize and kickstart carousel instance so it never stays frozen
+            // 4. Re-initialize and kickstart carousel instance (touch: false) so it never stays frozen
             if (typeof bootstrap !== 'undefined') {
                 var inst = bootstrap.Carousel.getInstance(headerCarouselEl);
                 if (inst) {
@@ -94,41 +110,77 @@
                 headerCarousel = new bootstrap.Carousel(headerCarouselEl, {
                     interval: 3500,
                     wrap: true,
-                    pause: false
+                    pause: false,
+                    touch: false
                 });
                 headerCarousel.cycle();
             }
         }
 
+        // Custom Strict Single-Gesture Touch Listener (touch: false on Bootstrap)
+        headerCarouselEl.addEventListener('touchstart', function (e) {
+            if (isAnimating || headerCarouselEl.classList.contains('is-animating')) {
+                return;
+            }
+            if (e.touches && e.touches.length > 0) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        headerCarouselEl.addEventListener('touchend', function (e) {
+            // STRICT TOUCH LOCK: If slide transition is running, IGNORE all touch swipes completely
+            if (isAnimating || headerCarouselEl.classList.contains('is-animating')) {
+                return;
+            }
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                var touchEndX = e.changedTouches[0].clientX;
+                var touchEndY = e.changedTouches[0].clientY;
+                var diffX = touchEndX - touchStartX;
+                var diffY = touchEndY - touchStartY;
+
+                // Check if horizontal swipe dominant and exceeds min threshold
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) >= minSwipeThreshold) {
+                    if (diffX < 0) {
+                        // Swipe Left -> Next slide
+                        if (headerCarousel) headerCarousel.next();
+                    } else {
+                        // Swipe Right -> Prev slide
+                        if (headerCarousel) headerCarousel.prev();
+                    }
+                }
+            }
+        }, { passive: true });
+
         // Listen to Bootstrap's slide.bs.carousel event (transition start)
         headerCarouselEl.addEventListener('slide.bs.carousel', function (e) {
             var targetIndex = typeof e.to !== 'undefined' ? e.to : 0;
 
-            // 1. Button Debouncing: disable pointer events during active transition
-            setControlsDisabled(true);
+            // 1. Strict Input Lock: Add .is-animating class and lock state
+            lockInputState();
 
             // 2. Preload upcoming slides (2 slides ahead) into browser cache
             preloadUpcomingSlides(targetIndex);
 
-            // 3. Auto-Recovery Watchdog: start 800ms timer to recover if transition hangs
+            // 3. Auto-Recovery Watchdog: start 600ms timer to recover if mobile browser drops frame
             if (slideWatchdogTimer) {
                 clearTimeout(slideWatchdogTimer);
             }
             slideWatchdogTimer = setTimeout(function () {
                 recoverStuckCarousel(targetIndex);
-            }, 800);
+            }, 600);
         });
 
         // Listen to Bootstrap's slid.bs.carousel event (transition complete)
         headerCarouselEl.addEventListener('slid.bs.carousel', function (e) {
-            // Clear watchdog timer since transition finished cleanly
+            // Clear 600ms watchdog timer since transition completed cleanly
             if (slideWatchdogTimer) {
                 clearTimeout(slideWatchdogTimer);
                 slideWatchdogTimer = null;
             }
 
-            // Re-enable navigation buttons
-            setControlsDisabled(false);
+            // Unlock inputs and remove .is-animating CSS class
+            unlockInputState();
 
             // Handle last slide infinite loop seamlessly
             if (typeof e.to !== 'undefined' && e.to === totalItems - 1) {
@@ -141,12 +193,13 @@
             }
         });
 
-        // Initialize Carousel Autoplay instance
+        // Initialize Carousel Autoplay instance with touch: false (custom swipe listener handles touch)
         if (typeof bootstrap !== 'undefined') {
             headerCarousel = bootstrap.Carousel.getInstance(headerCarouselEl) || new bootstrap.Carousel(headerCarouselEl, {
                 interval: 3500,
                 wrap: true,
-                pause: false
+                pause: false,
+                touch: false
             });
             headerCarousel.cycle();
         }
