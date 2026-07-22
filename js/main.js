@@ -15,25 +15,65 @@
     // Initiate the wowjs
     new WOW().init();
 
-    // Infinite Continuous Carousel Autoplay (Fixes last slide 'Dry & Finish' freezing)
+    // Smart Image Caching, Preloading & RAM Management for Hero Carousel
     var headerCarouselEl = document.getElementById('header-carousel');
-    if (headerCarouselEl && typeof bootstrap !== 'undefined') {
-        var headerCarousel = bootstrap.Carousel.getInstance(headerCarouselEl) || new bootstrap.Carousel(headerCarouselEl, {
-            interval: 3500,
-            wrap: true,
-            pause: false
-        });
-        headerCarousel.cycle();
+    if (headerCarouselEl) {
+        var carouselItems = headerCarouselEl.querySelectorAll('.carousel-item');
+        var totalItems = carouselItems.length;
 
-        headerCarouselEl.addEventListener('slid.bs.carousel', function (e) {
-            var totalItems = $('#header-carousel .carousel-item').length;
-            if (e.to === totalItems - 1) {
-                setTimeout(function () {
-                    headerCarousel.to(0);
-                    headerCarousel.cycle();
-                }, 3500);
+        // Function to preload a single slide image by swapping data-src to src
+        function preloadSlideImage(index) {
+            if (index < 0 || index >= totalItems) return;
+            var item = carouselItems[index];
+            if (item) {
+                var img = item.querySelector('img[data-src]');
+                if (img) {
+                    var dataSrc = img.getAttribute('data-src');
+                    if (dataSrc) {
+                        img.src = dataSrc;
+                        img.removeAttribute('data-src');
+                    }
+                }
+            }
+        }
+
+        // Dynamically look 1 to 2 slides ahead (and behind for seamless navigation)
+        function preloadUpcomingSlides(targetIndex) {
+            var offsets = [0, 1, 2, -1, -2];
+            for (var i = 0; i < offsets.length; i++) {
+                var idx = (targetIndex + offsets[i] + totalItems) % totalItems;
+                preloadSlideImage(idx);
+            }
+        }
+
+        // Preload upcoming slides on initial page load (for active slide index 0)
+        preloadUpcomingSlides(0);
+
+        // Listen to Bootstrap's slide.bs.carousel event to trigger background fetch before slide appears
+        headerCarouselEl.addEventListener('slide.bs.carousel', function (e) {
+            if (typeof e.to !== 'undefined') {
+                preloadUpcomingSlides(e.to);
             }
         });
+
+        // Infinite Continuous Carousel Autoplay
+        if (typeof bootstrap !== 'undefined') {
+            var headerCarousel = bootstrap.Carousel.getInstance(headerCarouselEl) || new bootstrap.Carousel(headerCarouselEl, {
+                interval: 3500,
+                wrap: true,
+                pause: false
+            });
+            headerCarousel.cycle();
+
+            headerCarouselEl.addEventListener('slid.bs.carousel', function (e) {
+                if (e.to === totalItems - 1) {
+                    setTimeout(function () {
+                        headerCarousel.to(0);
+                        headerCarousel.cycle();
+                    }, 3500);
+                }
+            });
+        }
     }
 
 
