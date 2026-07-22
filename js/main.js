@@ -15,11 +15,14 @@
     // Initiate the wowjs
     new WOW().init();
 
-    // Smart Image Caching, Preloading & RAM Management for Hero Carousel
+    // Smart Image Caching, Preloading, Anti-Freeze & RAM Management for Hero Carousel
     var headerCarouselEl = document.getElementById('header-carousel');
     if (headerCarouselEl) {
         var carouselItems = headerCarouselEl.querySelectorAll('.carousel-item');
         var totalItems = carouselItems.length;
+        var navBtns = headerCarouselEl.querySelectorAll('.carousel-control-prev, .carousel-control-next');
+        var slideWatchdogTimer = null;
+        var headerCarousel = null;
 
         // Function to preload a single slide image by swapping data-src to src
         function preloadSlideImage(index) {
@@ -49,30 +52,103 @@
         // Preload upcoming slides on initial page load (for active slide index 0)
         preloadUpcomingSlides(0);
 
-        // Listen to Bootstrap's slide.bs.carousel event to trigger background fetch before slide appears
+        // Helper to enable/disable navigation buttons pointer interactions
+        function setControlsDisabled(disabled) {
+            for (var i = 0; i < navBtns.length; i++) {
+                navBtns[i].style.pointerEvents = disabled ? 'none' : 'auto';
+            }
+        }
+
+        // Self-Healing Recovery: Clear stuck transitional classes and reset carousel instance
+        function recoverStuckCarousel(targetIndex) {
+            // 1. Forcibly remove all transitional CSS classes
+            for (var i = 0; i < carouselItems.length; i++) {
+                carouselItems[i].classList.remove(
+                    'carousel-item-next',
+                    'carousel-item-prev',
+                    'carousel-item-start',
+                    'carousel-item-end'
+                );
+            }
+
+            // 2. Ensure target slide has .active class and others do not
+            if (typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex < totalItems) {
+                for (var j = 0; j < carouselItems.length; j++) {
+                    if (j === targetIndex) {
+                        carouselItems[j].classList.add('active');
+                    } else {
+                        carouselItems[j].classList.remove('active');
+                    }
+                }
+            }
+
+            // Re-enable navigation controls
+            setControlsDisabled(false);
+
+            // 3. Re-initialize and kickstart carousel instance so it never stays frozen
+            if (typeof bootstrap !== 'undefined') {
+                var inst = bootstrap.Carousel.getInstance(headerCarouselEl);
+                if (inst) {
+                    inst.dispose();
+                }
+                headerCarousel = new bootstrap.Carousel(headerCarouselEl, {
+                    interval: 3500,
+                    wrap: true,
+                    pause: false
+                });
+                headerCarousel.cycle();
+            }
+        }
+
+        // Listen to Bootstrap's slide.bs.carousel event (transition start)
         headerCarouselEl.addEventListener('slide.bs.carousel', function (e) {
-            if (typeof e.to !== 'undefined') {
-                preloadUpcomingSlides(e.to);
+            var targetIndex = typeof e.to !== 'undefined' ? e.to : 0;
+
+            // 1. Button Debouncing: disable pointer events during active transition
+            setControlsDisabled(true);
+
+            // 2. Preload upcoming slides (2 slides ahead) into browser cache
+            preloadUpcomingSlides(targetIndex);
+
+            // 3. Auto-Recovery Watchdog: start 800ms timer to recover if transition hangs
+            if (slideWatchdogTimer) {
+                clearTimeout(slideWatchdogTimer);
+            }
+            slideWatchdogTimer = setTimeout(function () {
+                recoverStuckCarousel(targetIndex);
+            }, 800);
+        });
+
+        // Listen to Bootstrap's slid.bs.carousel event (transition complete)
+        headerCarouselEl.addEventListener('slid.bs.carousel', function (e) {
+            // Clear watchdog timer since transition finished cleanly
+            if (slideWatchdogTimer) {
+                clearTimeout(slideWatchdogTimer);
+                slideWatchdogTimer = null;
+            }
+
+            // Re-enable navigation buttons
+            setControlsDisabled(false);
+
+            // Handle last slide infinite loop seamlessly
+            if (typeof e.to !== 'undefined' && e.to === totalItems - 1) {
+                setTimeout(function () {
+                    if (headerCarousel) {
+                        headerCarousel.to(0);
+                        headerCarousel.cycle();
+                    }
+                }, 3500);
             }
         });
 
-        // Infinite Continuous Carousel Autoplay
+        // Initialize Carousel Autoplay instance
         if (typeof bootstrap !== 'undefined') {
-            var headerCarousel = bootstrap.Carousel.getInstance(headerCarouselEl) || new bootstrap.Carousel(headerCarouselEl, {
+            headerCarousel = bootstrap.Carousel.getInstance(headerCarouselEl) || new bootstrap.Carousel(headerCarouselEl, {
                 interval: 3500,
                 wrap: true,
                 pause: false
             });
             headerCarousel.cycle();
-
-            headerCarouselEl.addEventListener('slid.bs.carousel', function (e) {
-                if (e.to === totalItems - 1) {
-                    setTimeout(function () {
-                        headerCarousel.to(0);
-                        headerCarousel.cycle();
-                    }, 3500);
-                }
-            });
         }
     }
 
