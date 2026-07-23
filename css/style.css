@@ -83,14 +83,22 @@
 }
 
 /* Navbar links: white text, brass on hover/active */
+.navbar .navbar-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    right: translateX(50px);
+}
+
 .navbar .navbar-nav .nav-link,
 .navbar-dark .navbar-nav .nav-link {
-    margin-right: 30px;
+    margin: 0 22px;
     padding: 25px 0;
     color: #ffffff !important;
     font-size: 15px;
     text-transform: uppercase;
     outline: none;
+    text-align: center;
 }
 
 .navbar .navbar-nav .nav-link:hover,
@@ -102,12 +110,13 @@
 
 @media (max-width:991.98px) {
     .navbar-dark .navbar-nav .nav-link {
-        margin-right: 0;
+        margin: 0;
         padding: 10px 0;
     }
 
     .navbar-dark .navbar-nav {
         border-top: 1px solid #333333;
+        text-align: center;
     }
 }
 
@@ -218,7 +227,8 @@
 }
 
 /* Global Responsive Bounds & Performance Optimizations */
-html, body {
+html,
+body {
     overflow-x: hidden !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -323,7 +333,9 @@ html, body {
         padding-right: 14px !important;
     }
 
-    .service-item, .team-item, .fact-item {
+    .service-item,
+    .team-item,
+    .fact-item {
         margin-bottom: 1.25rem !important;
     }
 }
@@ -844,12 +856,17 @@ select option {
     background-color: #111111 !important;
     color: #ffffff !important;
     border: 1px solid #333 !important;
+    transition: all 0.5s ease-in-out !important;
 }
 
 .nav-pills .nav-link.active {
     background-color: var(--brass) !important;
     border-color: var(--brass) !important;
     color: #000000 !important;
+}
+
+.tab-content .tab-pane {
+    transition: opacity 0.5s ease-in-out !important;
 }
 
 /* Tables */
@@ -936,4 +953,54 @@ textarea:focus,
 textarea {
     color: #ffffff !important;
     resize: vertical;
+}
+
+/* Phone / Mobile View: Image & Description Content FIRST, Category Buttons DOWN */
+@media (max-width: 991.98px) {
+    /* 1. Main Services Section: Put Image & Description (col-lg-8) FIRST, Buttons (col-lg-4) DOWN */
+    .service .row.g-4 {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .service .row.g-4 > .col-lg-8 {
+        order: 1 !important; /* Image & Description Card FIRST on top */
+        width: 100% !important;
+    }
+
+    .service .row.g-4 > .col-lg-4 {
+        order: 2 !important; /* Category Buttons DOWN below text */
+        width: 100% !important;
+        margin-top: 25px !important;
+    }
+
+    /* 2. Inside Active Tab: Photo FIRST on top, Description Text DOWN below */
+    .service .tab-pane .row {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .service .tab-pane .row > div:first-child {
+        order: 1 !important; /* Photo FIRST */
+        width: 100% !important;
+        min-height: 260px !important;
+        margin-bottom: 20px !important;
+    }
+
+    .service .tab-pane .row > div:last-child {
+        order: 2 !important; /* Description Text DOWN below photo */
+        width: 100% !important;
+    }
+
+    .service .tab-pane img {
+        border-radius: 10px;
+        position: relative !important;
+        width: 100% !important;
+        height: 260px !important;
+        object-fit: cover !important;
+    }
+
+    .service .tab-pane .position-relative {
+        height: 260px !important;
+    }
 }

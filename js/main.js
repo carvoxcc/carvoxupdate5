@@ -189,7 +189,7 @@
                         headerCarousel.to(0);
                         headerCarousel.cycle();
                     }
-                }, 3500);
+                }, 4500);
             }
         });
 
@@ -204,6 +204,57 @@
             headerCarousel.cycle();
         }
     }
+
+
+    // Auto-rotate Services Nav-Pills Tabs automatically (5-Second Interval)
+    setInterval(function () {
+        var serviceNav = document.querySelector('.service .nav-pills');
+        if (!serviceNav) return;
+
+        var tabButtons = Array.from(serviceNav.querySelectorAll('button[data-bs-toggle="pill"]'));
+        if (tabButtons.length === 0) return;
+
+        // Find currently active tab button index
+        var activeIndex = tabButtons.findIndex(function (btn) {
+            return btn.classList.contains('active');
+        });
+
+        // Determine next tab index
+        var nextIndex = (activeIndex < 0) ? 0 : (activeIndex + 1) % tabButtons.length;
+        var nextBtn = tabButtons[nextIndex];
+        if (!nextBtn) return;
+
+        // 1. Fire native click event
+        nextBtn.click();
+
+        // 2. Fire Bootstrap 5 Tab API if available
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            try {
+                var tab = bootstrap.Tab.getOrCreateInstance(nextBtn);
+                if (tab) tab.show();
+            } catch (e) { }
+        }
+
+        // 3. Fallback direct class manipulation (guarantees tab switch on all browsers)
+        var targetId = nextBtn.getAttribute('data-bs-target');
+        if (targetId) {
+            tabButtons.forEach(function (btn) {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            nextBtn.classList.add('active');
+            nextBtn.setAttribute('aria-selected', 'true');
+
+            var targetPane = document.querySelector(targetId);
+            if (targetPane && targetPane.parentElement) {
+                var panes = targetPane.parentElement.querySelectorAll('.tab-pane');
+                panes.forEach(function (pane) {
+                    pane.classList.remove('show', 'active');
+                });
+                targetPane.classList.add('show', 'active');
+            }
+        }
+    }, 6000);
 
 
     // Sticky Navbar & Auto-close open mobile navbar list on scroll
