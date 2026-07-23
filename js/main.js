@@ -189,7 +189,7 @@
                         headerCarousel.to(0);
                         headerCarousel.cycle();
                     }
-                }, 4500);
+                }, 4500);     //value decrease speed increase 1000 1 second
             }
         });
 
@@ -254,7 +254,7 @@
                 targetPane.classList.add('show', 'active');
             }
         }
-    }, 6000);
+    }, 6000); //value decrease speed increase 1000 1 second
 
 
     // Sticky Navbar & Auto-close open mobile navbar list on scroll
